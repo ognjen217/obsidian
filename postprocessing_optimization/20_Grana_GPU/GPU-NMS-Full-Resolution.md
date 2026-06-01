@@ -44,6 +44,10 @@ Low-resolution shortcut-i su pokazali da agresivno smanjivanje rezolucije može 
 
 Ovo je najbolji balans u celom projektu: zadržava referentnu preciznost, a dramatično smanjuje runtime. COCO end-to-end latency pada sa 82.8 ms na 28.1 ms, a CCTV latency sa 230.6 ms na 47.5 ms.
 
+Kauzalni razlog je dvostruk. Prvo, heatmap NMS/peak extraction je paralelan po lokacijama i kanalima, pa GPU bolje koristi ovaj deo posla nego CPU petlje oko `extract_keypoints` u `modules/keypoints.py`. Drugo, finalna varijanta je **two-process runtime**, pa se MIGraphX inference i postprocessing preklapaju umesto da se uvek čekaju serijski. Zato je `gpu_nms_fullres_two_process` bolji live kandidat od čisto CPU varijanti čak i kada neke CPU konfiguracije imaju veći raw aggregate FPS u grid-search-u.
+
+Full-resolution odluka je jednako važna kao GPU odluka. Low-resolution varijanta stiže do **17.9 ms CCTV e2e** i **32.11 pipeline FPS**, ali AP pada na **0.2479**. Full-resolution GPU NMS zadržava **AP 0.3995** i zato ostaje deployment kandidat za referentni kvalitet.
+
 ## Decision
 
 Najbolji accuracy-preserving GPU runtime i glavni deployment kandidat.

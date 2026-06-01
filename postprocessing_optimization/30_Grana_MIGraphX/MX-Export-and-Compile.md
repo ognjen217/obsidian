@@ -39,6 +39,12 @@ Ovo nije isto što i “prebaciti operaciju na GPU”. MIGraphX zahteva da se op
 5. Sanity test je potvrdio da output može da se poredi sa očekivanim NMS ponašanjem.
 6. Benchmark je proverio da li compiled NMS stvarno popravlja end-to-end runtime.
 
+## Granica koja je pronađena
+
+MIGraphX dobro odgovara delovima postprocessinga koji su **shape-preserving** i tensor-oriented: thresholding, local max/NMS, maskiranje i TopK/candidate filtering. Teže se uklapaju delovi kao PAF line integration, variable-length liste keypoint-a i skeleton assembly, jer oni u postojećem pipeline-u žive bliže Python kontrolnom toku i funkcijama kao `group_keypoints` u `modules/keypoints.py`.
+
+Zato je ovaj branch dokazao izvodljivost compiled NMS-a, ali nije dokazao da ceo pose postprocess treba odmah prevesti u `.mxr`. Sledeći MIGraphX korak ima smisla samo ako se proširi tensor-only subgraph i istovremeno smanji bridge overhead između compiled output-a i ostatka Python postprocess-a.
+
 ## Decision
 
 Eksport/compile tok je uspešan i dokazuje tehničku izvodljivost compiled NMS pravca.

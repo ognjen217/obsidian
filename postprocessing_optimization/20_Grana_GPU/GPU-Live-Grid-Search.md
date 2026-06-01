@@ -27,6 +27,17 @@ Grid-search je testirao postprocessing varijante i software architecture paramet
 - uticaj worker topologije,
 - backpressure i throttle ponašanje.
 
+Korišćeni ranking helper je:
+
+```text
+balanced_score = avg_e2e_ms
+               + 0.5 * p95_e2e_ms
+               + 5 * queue_infer_to_post_ms
+               - 20 * aggregate_fps
+```
+
+Niži skor je bolji. Formula je namerno live-feed orijentisana: ne nagrađuje FPS ako se dobija kroz rast queue-a i stale rezultate.
+
 ## Najbolji low-latency setup
 
 ```text
@@ -64,6 +75,21 @@ target_output_fps_per_camera = 3
 ## Važan zaključak
 
 CPU optimized varijante mogu da pobede u raw aggregate FPS-u, ali po live-feed kriterijumu GPU fullres NMS ima bolji latency i tail latency. Za monitoring sistem, svežina output-a je važnija od obrade svakog frame-a.
+
+## Common-setup poređenje
+
+Isti setup: `latest`, `I1/P5`, `soft`, `max_pending_age_ms=300`, `target_output_fps_per_camera=3`.
+
+| Variant | Aggregate FPS | Avg E2E | P95 E2E | Avg postprocess | Queue infer-to-post | Balanced score |
+|---|---:|---:|---:|---:|---:|---:|
+| `cpu_k20_fast_two_process` | 16.60 | 273.93 ms | 336.27 ms | 206.63 ms | 5.04 ms | 135.1 |
+| `optimized_batch_k20_fast` | 16.66 | 277.07 ms | 348.08 ms | 209.15 ms | 6.66 ms | 151.1 |
+| `gpu_nms_fullres_two_process` | 15.91 | 254.54 ms | 338.21 ms | 160.13 ms | 10.11 ms | 155.9 |
+| `migraphx_nms` | 11.71 | 630.73 ms | 893.20 ms | 410.78 ms | 163.49 ms | 1660.6 |
+| `migraphx_nms_k20` | 11.97 | 636.34 ms | 932.38 ms | 401.87 ms | 175.82 ms | 1742.1 |
+| `standard` | 3.95 | 1530.12 ms | 1915.44 ms | 1217.23 ms | 247.85 ms | 3648.0 |
+
+Pod istim setup-om CPU fast varijante su vrlo jake u Balanced Score-u, ali GPU fullres ima niži prosečan E2E i značajno niži postprocess. Kada se posmatraju najbolji latency setup-i kroz celu mrežu eksperimenata, prvih 10 avg-latency rangova pripada `gpu_nms_fullres_two_process`.
 
 ## Decision
 
